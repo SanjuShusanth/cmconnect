@@ -1,0 +1,36 @@
+__pycache__/
+*.pyc
+venv/
+.env
+logs/
+Data/
+Reports/
+*.log
+*.xlsx
+*.csv
+fonts/
+templates/
+config.py
+
+
+# Sensitive config
+config.py
+config.py.bak
+
+# Cache and compiled files
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Logs and reports
+logs/
+Reports/
+*.log
+*.xlsx
+*.csv
+
+# Fonts or large binaries
+fonts/
+templates/

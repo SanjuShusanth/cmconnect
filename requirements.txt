@@ -1,0 +1,12 @@
+pandas
+openpyxl
+schedule
+python-dotenv
+sqlalchemy
+pymysql
+matplotlib
+reportlab
+python-docx
+psycopg2-binary
+fpdf
+streamlit
