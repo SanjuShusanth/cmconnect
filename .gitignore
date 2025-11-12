@@ -11,6 +11,7 @@ Reports/
 fonts/
 templates/
 config.py
+.streamlit/secrets.toml
 
 
 # Sensitive config
