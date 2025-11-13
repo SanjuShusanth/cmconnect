@@ -99,6 +99,7 @@ elif action == "📄 Generate Nodal Officer Report":
 # ===============================
 # Generate Pending Summary Report
 # ===============================
+
 elif action == "📄 Generate Pending Summary Report":
     st.subheader("📗 Generate Officer Pending Summary Report")
 
@@ -107,9 +108,7 @@ elif action == "📄 Generate Pending Summary Report":
             generate_pdf2_from_sql()
             st.success("Report generated successfully!")
 
-            # -------------------------------
-            # FIXED: ADD DOWNLOAD BUTTON HERE
-            # -------------------------------
+            # ✅ FIXED: download button MUST be outside the except block
             latest_pdf = get_latest_pdf()
             if latest_pdf:
                 st.download_button(
