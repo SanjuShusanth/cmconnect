@@ -100,7 +100,11 @@ elif action == "📄 Generate Pending Summary Report":
     if st.button("Generate Pending Report"):
         try:
             generate_pdf2_from_sql()
-            st.success("✅ Pending Summary Report generated successfully!")
+            st.success("Report generated successfully!")
+        except Exception as e:
+            st.error(f"PDF generation failed: {e}")
+            st.code(traceback.format_exc())
+
 
             latest_pdf = get_latest_pdf()
             if latest_pdf:
