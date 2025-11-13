@@ -3,19 +3,16 @@ __pycache__/
 venv/
 .env
 
-# Ignore only file types, not folders
+# Ignore only logs & data files (not folders)
 *.log
 *.xlsx
 *.csv
 
-# DO NOT ignore Reports or fonts (we need them)
-# Reports/.gitkeep ensures folder exists
+# Keep Reports folder for PDF output (use .gitkeep inside)
+# Keep fonts folder for Candara.ttf
+# DO NOT IGNORE THEM
 
-# Ignore sensitive config
+# Sensitive config
 config.py
 config.py.bak
 .streamlit/secrets.toml
-
-# Ignore large temp folders if needed
-logs/
-Data/Processed files/
