@@ -58,7 +58,7 @@ def generate_pdf2_from_sql():
 
         # Step 4: Prepare PDF Output Path
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pdf_filename = os.path.join(REPORT_PATH, f"Nodal_Officer_Report_{timestamp}.pdf")
+        pdf_filename = os.path.join(REPORT_PATH, f"Pending_Summary_Report_{timestamp}.pdf")
         logging.info(f"Generating PDF report at: {pdf_filename}")
 
         doc = SimpleDocTemplate(pdf_filename, pagesize=landscape(A3))
