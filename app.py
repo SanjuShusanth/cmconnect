@@ -105,21 +105,22 @@ elif action == "📄 Generate Pending Summary Report":
 
     if st.button("Generate Pending Report"):
         try:
+            # Generate the PDF
             generate_pdf2_from_sql()
-            st.success("Report generated successfully!")
+            st.success("✅ Pending Summary Report generated successfully!")
 
-            # ✅ FIXED: download button MUST be outside the except block
+            # Always show download button AFTER successful generation
             latest_pdf = get_latest_pdf()
             if latest_pdf:
                 st.download_button(
-                    label="⬇️ Download Latest Summary Report",
+                    label="⬇️ Download Latest Pending Summary Report",
                     data=open(latest_pdf, "rb").read(),
                     file_name=os.path.basename(latest_pdf),
                     mime="application/pdf",
                 )
 
         except Exception as e:
-            st.error(f"❌ Error generating pending report: {e}")
+            st.error(f"❌ Error generating Pending Summary Report: {e}")
             st.code(traceback.format_exc())
 
 
