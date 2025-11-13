@@ -2,8 +2,7 @@ import pandas as pd
 import logging
 import os
 import time
-from sqlalchemy import create_engine
-from config import engine, RAW_DATA_PATH, LOG_DIR
+from config_cloud import *
 
 # ---------------------------------------------------------
 # Setup logging

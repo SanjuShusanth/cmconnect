@@ -10,7 +10,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_CENTER
 from datetime import datetime
 import logging
-from config import engine, SQL_QUERY_PATH2, LOG_DIR, REPORT_PATH, FONT_PATH
+from config_cloud import *
 
 # ======================================================
 # Logging Configuration

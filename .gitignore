@@ -13,7 +13,6 @@ templates/
 config.py
 .streamlit/secrets.toml
 
-
 # Sensitive config
 config.py
 config.py.bak

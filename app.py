@@ -6,8 +6,7 @@ import traceback
 from normalization import run_normalization
 from generate_pdf import generate_pdf_from_sql
 from report_pdf import generate_pdf2_from_sql
-from config import REPORT_PATH, LOG_DIR
-
+from config_cloud import *
 # ===============================
 # Streamlit Page Config
 # ===============================
