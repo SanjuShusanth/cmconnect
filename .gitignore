@@ -2,35 +2,20 @@ __pycache__/
 *.pyc
 venv/
 .env
-logs/
-Data/
-Reports/
+
+# Ignore only file types, not folders
 *.log
 *.xlsx
 *.csv
-fonts/
-templates/
-config.py
-.streamlit/secrets.toml
 
-# Sensitive config
+# DO NOT ignore Reports or fonts (we need them)
+# Reports/.gitkeep ensures folder exists
+
+# Ignore sensitive config
 config.py
 config.py.bak
+.streamlit/secrets.toml
 
-# Cache and compiled files
-__pycache__/
-*.pyc
-
-# Virtual environment
-venv/
-
-# Logs and reports
+# Ignore large temp folders if needed
 logs/
-Reports/
-*.log
-*.xlsx
-*.csv
-
-# Fonts or large binaries
-fonts/
-templates/
+Data/Processed files/
