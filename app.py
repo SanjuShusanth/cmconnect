@@ -7,6 +7,7 @@ from normalization import run_normalization
 from generate_pdf import generate_pdf_from_sql
 from report_pdf import generate_pdf2_from_sql
 from config_cloud import *
+
 # ===============================
 # Streamlit Page Config
 # ===============================
@@ -14,8 +15,9 @@ st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
 st.title("📊 CM Connect Automated Reporting Dashboard")
 st.markdown("---")
 
+
 # ===============================
-# Utility: Display latest generated report
+# Utility: Get latest generated PDF file
 # ===============================
 def get_latest_pdf():
     try:
@@ -43,6 +45,7 @@ action = st.sidebar.radio(
     ],
 )
 
+
 # ===============================
 # Run Data Normalization
 # ===============================
@@ -52,21 +55,21 @@ if action == "🏁 Run Data Normalization":
     if st.button("Run Normalization"):
         try:
             start = time.time()
-            from normalization import engine, RAW_DATA_PATH, LOG_DIR  # ensure imports load fresh config
-
             st.info("Running normalization pipeline... Please wait.")
-            # Execute normalization script logic directly
+
             success = run_normalization()
             if success:
                 st.success("✅ Normalization completed successfully!")
             else:
                 st.error("❌ Normalization failed! Check logs for details.")
+
             duration = round(time.time() - start, 2)
-            st.success(f"✅ Normalization completed successfully in {duration} seconds!")
+            st.success(f"⏱ Completed in {duration} seconds")
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
             st.code(traceback.format_exc())
+
 
 # ===============================
 # Generate Nodal Officer Report
@@ -87,9 +90,11 @@ elif action == "📄 Generate Nodal Officer Report":
                     file_name=os.path.basename(latest_pdf),
                     mime="application/pdf",
                 )
+
         except Exception as e:
             st.error(f"❌ Error: {e}")
             st.code(traceback.format_exc())
+
 
 # ===============================
 # Generate Pending Summary Report
@@ -101,22 +106,23 @@ elif action == "📄 Generate Pending Summary Report":
         try:
             generate_pdf2_from_sql()
             st.success("Report generated successfully!")
-        except Exception as e:
-            st.error(f"PDF generation failed: {e}")
-            st.code(traceback.format_exc())
 
-
+            # -------------------------------
+            # FIXED: ADD DOWNLOAD BUTTON HERE
+            # -------------------------------
             latest_pdf = get_latest_pdf()
             if latest_pdf:
                 st.download_button(
-                    label="⬇️ Download Latest Report",
+                    label="⬇️ Download Latest Summary Report",
                     data=open(latest_pdf, "rb").read(),
                     file_name=os.path.basename(latest_pdf),
                     mime="application/pdf",
                 )
+
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"❌ Error generating pending report: {e}")
             st.code(traceback.format_exc())
+
 
 # ===============================
 # View Latest Report
@@ -135,6 +141,7 @@ elif action == "📂 View Latest Report":
         )
     else:
         st.warning("⚠️ No PDF reports found yet. Please generate one first.")
+
 
 # ===============================
 # View Logs
