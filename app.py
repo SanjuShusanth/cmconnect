@@ -47,28 +47,45 @@ action = st.sidebar.radio(
 
 
 # ===============================
-# Run Data Normalization
+# Run Data Normalization (With Upload)
 # ===============================
 if action == "🏁 Run Data Normalization":
-    st.subheader("🧹 Normalize & Upload Data to PostgreSQL")
+    st.subheader("🧹 Upload Excel & Normalize Data")
 
-    if st.button("Run Normalization"):
-        try:
-            start = time.time()
-            st.info("Running normalization pipeline... Please wait.")
+    uploaded_file = st.file_uploader("Upload Latest EPS & CRM Excel File", type=["xlsx"])
 
-            success = run_normalization()
-            if success:
-                st.success("✅ Normalization completed successfully!")
-            else:
-                st.error("❌ Normalization failed! Check logs for details.")
+    if uploaded_file:
+        st.info("📁 Upload received. Saving to RAW_DATA_PATH...")
 
-            duration = round(time.time() - start, 2)
-            st.success(f"⏱ Completed in {duration} seconds")
+        # Delete existing files
+        for old in os.listdir(RAW_DATA_PATH):
+            os.remove(os.path.join(RAW_DATA_PATH, old))
 
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-            st.code(traceback.format_exc())
+        # Save uploaded file
+        new_file_path = os.path.join(RAW_DATA_PATH, uploaded_file.name)
+        with open(new_file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        st.success(f"✅ File uploaded: {uploaded_file.name}")
+
+        # Run normalization button
+        if st.button("Run Normalization"):
+            try:
+                start = time.time()
+                st.info("⚙️ Running normalization pipeline...")
+
+                success = run_normalization()
+
+                if success:
+                    st.success("✅ Normalization completed successfully!")
+                else:
+                    st.error("❌ Normalization failed! Check logs for details.")
+
+                st.success(f"⏱ Completed in {round(time.time() - start, 2)} seconds")
+
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+                st.code(traceback.format_exc())
 
 
 # ===============================
@@ -99,28 +116,25 @@ elif action == "📄 Generate Nodal Officer Report":
 # ===============================
 # Generate Pending Summary Report
 # ===============================
-
 elif action == "📄 Generate Pending Summary Report":
     st.subheader("📗 Generate Officer Pending Summary Report")
 
     if st.button("Generate Pending Report"):
         try:
-            # Generate the PDF
             generate_pdf2_from_sql()
             st.success("✅ Pending Summary Report generated successfully!")
 
-            # Always show download button AFTER successful generation
             latest_pdf = get_latest_pdf()
             if latest_pdf:
                 st.download_button(
-                    label="⬇️ Download Latest Pending Summary Report",
+                    label="⬇️ Download Latest Report",
                     data=open(latest_pdf, "rb").read(),
                     file_name=os.path.basename(latest_pdf),
                     mime="application/pdf",
                 )
 
         except Exception as e:
-            st.error(f"❌ Error generating Pending Summary Report: {e}")
+            st.error(f"❌ Report generation failed: {e}")
             st.code(traceback.format_exc())
 
 
