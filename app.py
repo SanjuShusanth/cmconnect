@@ -14,26 +14,51 @@ from config_cloud import *
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
 
 # Background image function
-def set_bg(image_path):
-    if os.path.exists(image_path):
-        import base64
-        with open(image_path, "rb") as img:
-            encoded = base64.b64encode(img.read()).decode()
-        css = f"""
-        <style>
-        [data-testid="stAppViewContainer"] {{
-            background-image: url("data:image/png;base64,{encoded}");
-            background-size: cover;
-            background-position: center;
-        }}
-        </style>
-        """
-        st.markdown(css, unsafe_allow_html=True)
-    else:
+def set_bg_center_transparent(image_path):
+    """Set a centered, semi-transparent background image."""
+    import base64
+
+    if not os.path.exists(image_path):
         st.warning("Background image not found.")
+        return
+
+    # Encode image to base64
+    with open(image_path, "rb") as img:
+        encoded = base64.b64encode(img.read()).decode()
+
+    # CSS to show centered + transparent image
+    css = f"""
+    <style>
+    /* Main App Background */
+    [data-testid="stAppViewContainer"] {{
+        background: none;
+    }}
+
+    /* Add centered transparent image */
+    [data-testid="stAppViewContainer"]::before {{
+        content: "";
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 60%;
+        height: 60%;
+        transform: translate(-50%, -50%);
+        background-image: url("data:image/png;base64,{encoded}");
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 0.5; /* 50% transparency */
+        z-index: -1; /* behind all content */
+    }}
+    </style>
+    """
+
+    st.markdown(css, unsafe_allow_html=True)
+
 
 # Apply background image
-set_bg(PICTURE_PATH)
+set_bg_center_transparent(PICTURE_PATH)
+
 
 st.title("📊 CM Connect Automated Reporting Webapp")
 st.markdown("---")
