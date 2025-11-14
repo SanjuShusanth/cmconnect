@@ -9,9 +9,9 @@ WITH base AS (
 summary AS (
     SELECT 
         new_department,
-        COUNT(DISTINCT grievance_id) AS total_tickets,
-        COUNT(DISTINCT CASE WHEN status = 'Pending' THEN grievance_id END) AS pending_tickets,
-        COUNT(DISTINCT CASE WHEN status = 'Closed' THEN grievance_id END) AS closed_tickets
+        COUNT(DISTINCT grievance_id)::int AS total_tickets,
+        COUNT(DISTINCT CASE WHEN status = 'Pending' THEN grievance_id END)::int AS pending_tickets,
+        COUNT(DISTINCT CASE WHEN status = 'Closed' THEN grievance_id END)::int AS closed_tickets
     FROM base
     GROUP BY new_department
 ),
@@ -19,7 +19,7 @@ officer_rank AS (
     SELECT 
         new_department,
         ticket_currently_pending_with AS nodal_officer,
-        COUNT(DISTINCT grievance_id) AS officer_pending,
+        COUNT(DISTINCT grievance_id)::int AS officer_pending,
         ROW_NUMBER() OVER (
             PARTITION BY new_department 
             ORDER BY COUNT(DISTINCT grievance_id) DESC
@@ -35,7 +35,7 @@ final AS (
         s.pending_tickets,
         s.closed_tickets,
         COALESCE(o.nodal_officer, 'Unassigned') AS nodal_officer,
-        COALESCE(o.officer_pending, 0) AS nodal_officer_pending_count
+        COALESCE(o.officer_pending, 0)::int AS nodal_officer_pending_count
     FROM summary s
     LEFT JOIN officer_rank o 
         ON s.new_department = o.new_department AND o.rn = 1
@@ -55,11 +55,11 @@ combined AS (
 
     SELECT 
         'Grand Total' AS department_name,
-        SUM(total_tickets),
-        SUM(pending_tickets),
-        SUM(closed_tickets),
+        SUM(total_tickets)::int,
+        SUM(pending_tickets)::int,
+        SUM(closed_tickets)::int,
         '—' AS nodal_officer,
-        SUM(nodal_officer_pending_count),
+        SUM(nodal_officer_pending_count)::int,
         1 AS sort_order
     FROM final
 )
