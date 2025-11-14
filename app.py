@@ -12,7 +12,7 @@ from config_cloud import *
 # Streamlit Page Config
 # ===============================
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
-st.title("📊 CM Connect Automated Reporting Dashboard")
+st.title("📊 CM Connect Automated Reporting Webapp")
 st.markdown("---")
 
 
