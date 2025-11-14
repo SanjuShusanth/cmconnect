@@ -32,6 +32,7 @@ RAW_DATA_PATH = os.path.join(BASE_DIR, "Data", "raw files")
 PROCESSED_PATH = os.path.join(BASE_DIR, "Data", "Processed files")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 REPORT_PATH = os.path.join(BASE_DIR, "Reports")
+PICTURE_PATH = os.path.join(BASE_DIR, "fonts", "Picture1.png")
 
 SQL_QUERY_PATH1 = os.path.join(BASE_DIR, "Sqlqueries", "NodalOfficersqlQueries.sql")
 SQL_QUERY_PATH2 = os.path.join(BASE_DIR, "Sqlqueries", "NodalAnalysisReport.sql")

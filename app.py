@@ -12,6 +12,8 @@ from config_cloud import *
 # Streamlit Page Config
 # ===============================
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
+image = PICTURE_PATH
+st.background_image(image)
 st.title("📊 CM Connect Automated Reporting Webapp")
 st.markdown("---")
 
