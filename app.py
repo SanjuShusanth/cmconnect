@@ -12,10 +12,32 @@ from config_cloud import *
 # Streamlit Page Config
 # ===============================
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
-image = PICTURE_PATH
-st.background_image(image)
+
+# Background image function
+def set_bg(image_path):
+    if os.path.exists(image_path):
+        import base64
+        with open(image_path, "rb") as img:
+            encoded = base64.b64encode(img.read()).decode()
+        css = f"""
+        <style>
+        [data-testid="stAppViewContainer"] {{
+            background-image: url("data:image/png;base64,{encoded}");
+            background-size: cover;
+            background-position: center;
+        }}
+        </style>
+        """
+        st.markdown(css, unsafe_allow_html=True)
+    else:
+        st.warning("Background image not found.")
+
+# Apply background image
+set_bg(PICTURE_PATH)
+
 st.title("📊 CM Connect Automated Reporting Webapp")
 st.markdown("---")
+
 
 
 # ===============================
