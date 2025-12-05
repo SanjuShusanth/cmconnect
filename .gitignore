@@ -21,3 +21,6 @@ config.py.bak
 
 # fonts SHOULD be tracked, so do NOT ignore them
 # (no fonts/ line)
+
+/.quarto/
+**/*.quarto_ipynb
