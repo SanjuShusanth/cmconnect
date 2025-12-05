@@ -18,9 +18,3 @@ config.py.bak
 
 # streamlit secrets should NOT be committed
 .streamlit/secrets.toml
-
-# fonts SHOULD be tracked, so do NOT ignore them
-# (no fonts/ line)
-
-/.quarto/
-**/*.quarto_ipynb
