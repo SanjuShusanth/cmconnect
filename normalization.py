@@ -73,7 +73,14 @@ def run_normalization():
         if '' in df_eps.columns:
             df_eps = df_eps.rename(columns={'': 'officer_name'})
 
-        logging.info("🔤 Column renaming completed")
+        df_eps['district'].replace('Ri-Bhoi', 'Ri Bhoi', inplace=True)
+
+        df_eps['block'] = (
+            df_eps['block'].str.strip().str.replace(r'\s*C\s*&\s*RD\s*Block', '', regex=True).str.replace(r'\s+', ' ', regex=True)
+            .str.title())
+
+
+        logging.info("🔤 Column & values renaming completed")
 
         # ---------------------------------------------------------
         # Step 5: Upload to PostgreSQL (overwrite tables)
