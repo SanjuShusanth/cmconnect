@@ -73,12 +73,17 @@ def run_normalization():
         if '' in df_eps.columns:
             df_eps = df_eps.rename(columns={'': 'officer_name'})
 
-        df_eps['district'].replace('Ri-Bhoi', 'Ri Bhoi', inplace=True)
+        if 'district' in df_eps.columns:
+            df_eps['district'] = df_eps['district'].replace('Ri-Bhoi', 'Ri Bhoi')
 
-        df_eps['block'] = (
-            df_eps['block'].str.strip().str.replace(r'\s*C\s*&\s*RD\s*Block', '', regex=True).str.replace(r'\s+', ' ', regex=True)
-            .str.title())
-
+        if 'block' in df_eps.columns:
+            df_eps['block'] = (
+                df_eps['block'].astype(str)
+                .str.strip()
+                .str.replace(r'\s*C\s*&\s*RD\s*Block', '', regex=True)
+                .str.replace(r'\s+', ' ', regex=True)
+                .str.title()
+                )
 
         logging.info("🔤 Column & values renaming completed")
 
