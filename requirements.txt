@@ -11,5 +11,3 @@ psycopg2-binary
 fpdf
 altair==4.2.2
 streamlit==1.25.0
-pillow==9.4.0
-
