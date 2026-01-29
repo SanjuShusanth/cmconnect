@@ -11,6 +11,11 @@ from config_cloud import *
 # ===============================
 # Streamlit Page Config
 # ===============================
+
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+    st.stop()   # Wait for session to initialize
+    
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
 
 # Background image function
