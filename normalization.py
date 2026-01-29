@@ -3,6 +3,7 @@ import logging
 import os
 import time
 import streamlit as st
+import re   # <-- REQUIRED FIX
 from config_cloud import *
 
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -18,21 +19,16 @@ logging.basicConfig(
 
 def heartbeat(msg):
     st.toast(msg, icon="⚡")
-    time.sleep(0.05)  # micro-sleep to avoid freeze
+    time.sleep(0.05)
 
 
-# -------------------------------------------------------
-# OPTIMIZED Normalization
-# -------------------------------------------------------
 def run_normalization():
     t0 = time.time()
     logging.info("🚀 Normalization started (optimized mode)")
     heartbeat("Starting optimization...")
 
     try:
-        # -----------------------------------------------
-        # Step 1: Locate latest file
-        # -----------------------------------------------
+        # Step 1: Locate file
         raw_files = [f for f in os.listdir(RAW_DATA_PATH) if f.endswith(".xlsx")]
         if not raw_files:
             raise FileNotFoundError("No Excel files found.")
@@ -43,22 +39,16 @@ def run_normalization():
 
         heartbeat("Reading Excel file fast...")
 
-        # -----------------------------------------------
-        # Step 2: FAST Excel Reader
-        # -----------------------------------------------
-        # Engine "openpyxl" is fastest for .xlsx
+        # Read Excel
         df_eps = pd.read_excel(excel_path, sheet_name='EPS RAW', engine="openpyxl")
         df_crm = pd.read_excel(excel_path, sheet_name='CRM RAW', engine="openpyxl")
 
-        # Reduce memory usage
         df_eps.columns = df_eps.columns.astype(str)
         df_crm.columns = df_crm.columns.astype(str)
 
         heartbeat("Excel loaded successfully")
 
-        # -----------------------------------------------
-        # Step 3: FAST Column normalization
-        # -----------------------------------------------
+        # Column normalization
         def normalize_cols(cols):
             cols = cols.str.strip()
             cols = cols.str.replace(r"[^\w]+", "_", regex=True)
@@ -70,9 +60,7 @@ def run_normalization():
         logging.info("Column normalization complete")
         heartbeat("Normalizing columns...")
 
-        # -----------------------------------------------
-        # Step 4: Value cleanup (vectorized)
-        # -----------------------------------------------
+        # Value cleanup
         rename_map = {
             'source': 'source_primary',
             'source1': 'source_secondary'
@@ -94,15 +82,12 @@ def run_normalization():
                 .str.title()
             )
 
-        if 'Date_of_Complaint'.lower() in df_eps.columns:
-            col = 'date_of_complaint'
-            df_eps[col] = pd.to_datetime(df_eps[col], errors='coerce')
+        if 'date_of_complaint' in df_eps.columns:
+            df_eps['date_of_complaint'] = pd.to_datetime(df_eps['date_of_complaint'], errors='coerce')
 
         heartbeat("Cleaning values...")
 
-        # -----------------------------------------------
-        # Step 5: OPTIMIZED SQL Upload (fast chunks)
-        # -----------------------------------------------
+        # Upload to SQL (optimized)
         logging.info("Uploading to database...")
 
         df_eps.to_sql(
@@ -110,8 +95,8 @@ def run_normalization():
             con=engine,
             if_exists='replace',
             index=False,
-            chunksize=5000,      # 🚀 FAST
-            method="multi"       # 🚀 FASTBATCH
+            chunksize=5000,
+            method="multi"
         )
 
         df_crm.to_sql(
