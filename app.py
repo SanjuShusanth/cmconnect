@@ -8,17 +8,13 @@ from generate_pdf import generate_pdf_from_sql
 from report_pdf import generate_pdf2_from_sql
 from config_cloud import *
 
-# ===============================
-# Streamlit Page Config (MUST BE FIRST)
-# ===============================
+# MUST be first Streamlit command
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
 
-# ===============================
-# Safe Session Initialization
-# ===============================
+# Safe session initialization
 if "ready" not in st.session_state:
     st.session_state.ready = True
-    st.experimental_rerun()
+    st.rerun()
 
 
 # Background image function
