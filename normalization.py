@@ -2,8 +2,7 @@ import pandas as pd
 import logging
 import os
 import time
-import streamlit as st
-import re   # <-- REQUIRED FIX
+import re
 from config_cloud import *
 
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -16,19 +15,11 @@ logging.basicConfig(
     filemode="a"
 )
 
-
-def heartbeat(msg):
-    st.toast(msg, icon="⚡")
-    time.sleep(0.05)
-
-
 def run_normalization():
     t0 = time.time()
     logging.info("🚀 Normalization started (optimized mode)")
-    heartbeat("Starting optimization...")
 
     try:
-        # Step 1: Locate file
         raw_files = [f for f in os.listdir(RAW_DATA_PATH) if f.endswith(".xlsx")]
         if not raw_files:
             raise FileNotFoundError("No Excel files found.")
@@ -37,16 +28,11 @@ def run_normalization():
         excel_path = os.path.join(RAW_DATA_PATH, latest_file)
         logging.info(f"Using file: {excel_path}")
 
-        heartbeat("Reading Excel file fast...")
-
-        # Read Excel
         df_eps = pd.read_excel(excel_path, sheet_name='EPS RAW', engine="openpyxl")
         df_crm = pd.read_excel(excel_path, sheet_name='CRM RAW', engine="openpyxl")
 
         df_eps.columns = df_eps.columns.astype(str)
         df_crm.columns = df_crm.columns.astype(str)
-
-        heartbeat("Excel loaded successfully")
 
         # Column normalization
         def normalize_cols(cols):
@@ -56,9 +42,6 @@ def run_normalization():
 
         df_eps.columns = normalize_cols(df_eps.columns)
         df_crm.columns = normalize_cols(df_crm.columns)
-
-        logging.info("Column normalization complete")
-        heartbeat("Normalizing columns...")
 
         # Value cleanup
         rename_map = {
@@ -85,11 +68,7 @@ def run_normalization():
         if 'date_of_complaint' in df_eps.columns:
             df_eps['date_of_complaint'] = pd.to_datetime(df_eps['date_of_complaint'], errors='coerce')
 
-        heartbeat("Cleaning values...")
-
-        # Upload to SQL (optimized)
-        logging.info("Uploading to database...")
-
+        # Upload to DB
         df_eps.to_sql(
             'staging_grievance',
             con=engine,
@@ -108,15 +87,9 @@ def run_normalization():
             method="multi"
         )
 
-        heartbeat("Upload to DB complete")
-
-        elapsed = round(time.time() - t0, 2)
-        logging.info(f"🏁 Normalization finished in {elapsed} sec")
-        st.success(f"🚀 Normalization completed in {elapsed} seconds")
-
+        logging.info(f"🏁 Normalization finished in {round(time.time() - t0, 2)} sec")
         return True
 
     except Exception as e:
         logging.exception(f"❌ Error: {str(e)}")
-        st.error(str(e))
         return False

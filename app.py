@@ -61,7 +61,6 @@ set_bg_center_transparent(PICTURE_PATH)
 st.title("📊 CM Connect Automated Reporting Webapp")
 st.markdown("---")
 
-
 # =======================================================
 # Utility: Get latest generated PDF
 # =======================================================
@@ -91,9 +90,8 @@ action = st.sidebar.radio(
     ],
 )
 
-
 # =======================================================
-# Background Thread (Normalization)
+# Background Thread
 # =======================================================
 def background_normalize():
     try:
@@ -117,12 +115,10 @@ def background_normalize():
 
 
 # =======================================================
-# Run Data Normalization (Main UI)
+# Run Data Normalization
 # =======================================================
 if action == "🏁 Run Data Normalization":
     st.subheader("🧹 Upload Excel & Normalize Data")
-
-    uploaded_file = st.file_uploader("Upload Latest EPS & CRM Excel File", type=["xlsx"])
 
     # Initialize session-state variables
     defaults = {
@@ -135,6 +131,8 @@ if action == "🏁 Run Data Normalization":
     for key, val in defaults.items():
         st.session_state.setdefault(key, val)
 
+    uploaded_file = st.file_uploader("Upload Latest EPS & CRM Excel File", type=["xlsx"])
+
     if uploaded_file:
         st.info("📁 Upload received. Saving to RAW_DATA_PATH...")
 
@@ -142,7 +140,7 @@ if action == "🏁 Run Data Normalization":
         for old in os.listdir(RAW_DATA_PATH):
             os.remove(os.path.join(RAW_DATA_PATH, old))
 
-        # Save uploaded file
+        # Save file
         new_file_path = os.path.join(RAW_DATA_PATH, uploaded_file.name)
         with open(new_file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
@@ -158,15 +156,13 @@ if action == "🏁 Run Data Normalization":
             threading.Thread(target=background_normalize, daemon=True).start()
             st.info("⚙️ Normalization started in background… Please wait ⏳")
 
-    # -------------------------------
-    # Show progress while running
-    # -------------------------------
+    # Running status
     if st.session_state.norm_started and not st.session_state.norm_done:
         st.warning("⏳ Normalization in progress…")
         st.write(st.session_state.norm_status)
         st.progress(st.session_state.norm_progress)
 
-        # Safe timed auto-refresh for Streamlit 1.32
+        # safe timed refresh
         if "last_refresh" not in st.session_state:
             st.session_state.last_refresh = time.time()
 
@@ -174,12 +170,10 @@ if action == "🏁 Run Data Normalization":
             st.session_state.last_refresh = time.time()
             st.rerun()
 
-    # -------------------------------
-    # When Completed
-    # -------------------------------
+    # Completed
     if st.session_state.norm_done:
 
-        # stop the timed refresh loop
+        # stop refresh
         if "last_refresh" in st.session_state:
             del st.session_state.last_refresh
 
@@ -187,9 +181,14 @@ if action == "🏁 Run Data Normalization":
             st.error(f"❌ {st.session_state.norm_error}")
         else:
             st.success("🎉 Normalization completed successfully!")
+            st.balloons()
 
-        st.balloons()
+        # reset for next run
         st.session_state.norm_started = False
+        st.session_state.norm_done = False
+        st.session_state.norm_progress = 0
+        st.session_state.norm_status = "Waiting..."
+        st.session_state.norm_error = None
 
 
 # =======================================================
