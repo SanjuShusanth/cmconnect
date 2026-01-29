@@ -9,14 +9,17 @@ from report_pdf import generate_pdf2_from_sql
 from config_cloud import *
 
 # ===============================
-# Streamlit Page Config
+# Streamlit Page Config (MUST BE FIRST)
 # ===============================
-
-if "initialized" not in st.session_state:
-    st.session_state.initialized = True
-    st.stop()   # Wait for session to initialize
-    
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
+
+# ===============================
+# Safe Session Initialization
+# ===============================
+if "ready" not in st.session_state:
+    st.session_state.ready = True
+    st.experimental_rerun()
+
 
 # Background image function
 def set_bg_center_transparent(image_path):
