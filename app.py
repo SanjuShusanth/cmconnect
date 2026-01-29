@@ -185,10 +185,11 @@ if action == "🏁 Run Data Normalization":
 
         # reset for next run
         st.session_state.norm_started = False
-        st.session_state.norm_done = False
         st.session_state.norm_progress = 0
         st.session_state.norm_status = "Waiting..."
         st.session_state.norm_error = None
+        # DO NOT reset norm_done here
+
 
 
 # =======================================================
