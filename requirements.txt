@@ -10,4 +10,5 @@ python-docx
 psycopg2-binary
 fpdf
 altair==4.2.2
-streamlit==1.25.0
+streamlit==1.32.2
+
