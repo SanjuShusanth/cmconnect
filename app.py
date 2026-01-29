@@ -63,7 +63,7 @@ st.markdown("---")
 
 
 # =======================================================
-# Utility: Get latest generated PDF file
+# Utility: Get latest generated PDF
 # =======================================================
 def get_latest_pdf():
     try:
@@ -77,7 +77,7 @@ def get_latest_pdf():
 
 
 # =======================================================
-# Sidebar Navigation
+# Sidebar Menu
 # =======================================================
 st.sidebar.title("🔧 Actions")
 action = st.sidebar.radio(
@@ -93,7 +93,7 @@ action = st.sidebar.radio(
 
 
 # =======================================================
-# Background Thread Normalization
+# Background Thread (Normalization)
 # =======================================================
 def background_normalize():
     try:
@@ -106,7 +106,7 @@ def background_normalize():
             st.session_state.norm_progress = 100
             st.session_state.norm_status = "Completed successfully!"
         else:
-            st.session_state.norm_status = "Normalization failed!"
+            st.session_state.norm_status = "Normalization failed."
             st.session_state.norm_error = "Error during normalization."
 
         st.session_state.norm_done = True
@@ -117,14 +117,14 @@ def background_normalize():
 
 
 # =======================================================
-# Run Data Normalization
+# Run Data Normalization (Main UI)
 # =======================================================
 if action == "🏁 Run Data Normalization":
     st.subheader("🧹 Upload Excel & Normalize Data")
 
     uploaded_file = st.file_uploader("Upload Latest EPS & CRM Excel File", type=["xlsx"])
 
-    # Initialize all session vars
+    # Initialize session-state variables
     defaults = {
         "norm_started": False,
         "norm_done": False,
@@ -137,9 +137,12 @@ if action == "🏁 Run Data Normalization":
 
     if uploaded_file:
         st.info("📁 Upload received. Saving to RAW_DATA_PATH...")
+
+        # Clear old files
         for old in os.listdir(RAW_DATA_PATH):
             os.remove(os.path.join(RAW_DATA_PATH, old))
 
+        # Save uploaded file
         new_file_path = os.path.join(RAW_DATA_PATH, uploaded_file.name)
         with open(new_file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
@@ -156,21 +159,30 @@ if action == "🏁 Run Data Normalization":
             st.info("⚙️ Normalization started in background… Please wait ⏳")
 
     # -------------------------------
-    # Show progress
+    # Show progress while running
     # -------------------------------
     if st.session_state.norm_started and not st.session_state.norm_done:
         st.warning("⏳ Normalization in progress…")
         st.write(st.session_state.norm_status)
-
         st.progress(st.session_state.norm_progress)
 
-        # Safe timed auto-refresh
-        st.experimental_autorefresh(interval=1000)
+        # Safe timed auto-refresh for Streamlit 1.32
+        if "last_refresh" not in st.session_state:
+            st.session_state.last_refresh = time.time()
+
+        if time.time() - st.session_state.last_refresh > 1:
+            st.session_state.last_refresh = time.time()
+            st.rerun()
 
     # -------------------------------
-    # Completed
+    # When Completed
     # -------------------------------
     if st.session_state.norm_done:
+
+        # stop the timed refresh loop
+        if "last_refresh" in st.session_state:
+            del st.session_state.last_refresh
+
         if st.session_state.norm_error:
             st.error(f"❌ {st.session_state.norm_error}")
         else:
