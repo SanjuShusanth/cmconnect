@@ -2,12 +2,9 @@ import pandas as pd
 import logging
 import os
 import time
-import streamlit as st  # <-- Added
+import streamlit as st
 from config_cloud import *
 
-# ---------------------------------------------------------
-# Setup logging
-# ---------------------------------------------------------
 os.makedirs(LOG_DIR, exist_ok=True)
 log_file_path = os.path.join(LOG_DIR, "normalization.log")
 
@@ -19,109 +16,122 @@ logging.basicConfig(
 )
 
 
-# ---------------------------------------------------------
-# Normalization Script
-# ---------------------------------------------------------
-def run_normalization():
-    start_time = time.time()
-    logging.info("🚀 Normalization pipeline started")
+def heartbeat(msg):
+    st.toast(msg, icon="⚡")
+    time.sleep(0.05)  # micro-sleep to avoid freeze
 
-    # 👇 HEARTBEAT #1 — prevents 60-second timeout
-    st.experimental_yield()
+
+# -------------------------------------------------------
+# OPTIMIZED Normalization
+# -------------------------------------------------------
+def run_normalization():
+    t0 = time.time()
+    logging.info("🚀 Normalization started (optimized mode)")
+    heartbeat("Starting optimization...")
 
     try:
-        # ---------------------------------------------------------
-        # Step 1: Get latest uploaded raw Excel file
-        # ---------------------------------------------------------
+        # -----------------------------------------------
+        # Step 1: Locate latest file
+        # -----------------------------------------------
         raw_files = [f for f in os.listdir(RAW_DATA_PATH) if f.endswith(".xlsx")]
-
         if not raw_files:
-            raise FileNotFoundError("❌ No Excel files found inside RAW_DATA_PATH. Please upload a file first.")
+            raise FileNotFoundError("No Excel files found.")
 
         latest_file = max(raw_files, key=lambda f: os.path.getmtime(os.path.join(RAW_DATA_PATH, f)))
         excel_path = os.path.join(RAW_DATA_PATH, latest_file)
+        logging.info(f"Using file: {excel_path}")
 
-        logging.info(f"📂 Step 1: Using Excel file: {excel_path}")
+        heartbeat("Reading Excel file fast...")
 
-        st.experimental_yield()  # 👈 HEARTBEAT #2
+        # -----------------------------------------------
+        # Step 2: FAST Excel Reader
+        # -----------------------------------------------
+        # Engine "openpyxl" is fastest for .xlsx
+        df_eps = pd.read_excel(excel_path, sheet_name='EPS RAW', engine="openpyxl")
+        df_crm = pd.read_excel(excel_path, sheet_name='CRM RAW', engine="openpyxl")
 
-        # ---------------------------------------------------------
-        # Step 2: Read sheets
-        # ---------------------------------------------------------
-        logging.info("📖 Step 2: Reading sheets ['EPS RAW', 'CRM RAW'] from Excel")
+        # Reduce memory usage
+        df_eps.columns = df_eps.columns.astype(str)
+        df_crm.columns = df_crm.columns.astype(str)
 
-        df_eps = pd.read_excel(excel_path, sheet_name='EPS RAW')
-        df_crm = pd.read_excel(excel_path, sheet_name='CRM RAW')
+        heartbeat("Excel loaded successfully")
 
-        logging.info(f"✅ Sheets read | EPS RAW rows: {len(df_eps)}, CRM RAW rows: {len(df_crm)}")
-        st.experimental_yield()  # 👈 HEARTBEAT #3
+        # -----------------------------------------------
+        # Step 3: FAST Column normalization
+        # -----------------------------------------------
+        def normalize_cols(cols):
+            cols = cols.str.strip()
+            cols = cols.str.replace(r"[^\w]+", "_", regex=True)
+            return cols.str.lower()
 
-        # ---------------------------------------------------------
-        # Step 3: Normalize column names
-        # ---------------------------------------------------------
-        for df in [df_eps, df_crm]:
-            df.columns = (
-                df.columns.str.strip()
-                .str.replace(r'\s+', '_', regex=True)
-                .str.replace(r'[^\w]', '', regex=True)
-                .str.lower()
-            )
+        df_eps.columns = normalize_cols(df_eps.columns)
+        df_crm.columns = normalize_cols(df_crm.columns)
 
-        logging.info("✅ Column normalization completed")
+        logging.info("Column normalization complete")
+        heartbeat("Normalizing columns...")
 
-        # ---------------------------------------------------------
-        # Step 4: Additional renaming
-        # ---------------------------------------------------------
-        df_eps = df_eps.rename(columns={
+        # -----------------------------------------------
+        # Step 4: Value cleanup (vectorized)
+        # -----------------------------------------------
+        rename_map = {
             'source': 'source_primary',
             'source1': 'source_secondary'
-        })
+        }
+        df_eps.rename(columns=rename_map, inplace=True)
 
         if '' in df_eps.columns:
-            df_eps = df_eps.rename(columns={'': 'officer_name'})
+            df_eps.rename(columns={'': 'officer_name'}, inplace=True)
 
         if 'district' in df_eps.columns:
-            df_eps['district'] = df_eps['district'].replace('Ri-Bhoi', 'Ri Bhoi')
+            df_eps['district'] = df_eps['district'].replace({'Ri-Bhoi': 'Ri Bhoi'})
 
         if 'block' in df_eps.columns:
             df_eps['block'] = (
-                df_eps['block'].astype(str)
-                .str.strip()
-                .str.replace(r'\s*C\s*&\s*RD\s*Block', '', regex=True)
-                .str.replace(r'\s+', ' ', regex=True)
+                df_eps['block']
+                .astype(str)
+                .str.replace(r"c\s*&\s*rd\s*block", "", regex=True, flags=re.I)
+                .str.replace(r"\s+", " ", regex=True)
                 .str.title()
             )
 
-        if 'Date_of_Complaint' in df_eps.columns:
-            df_eps['Date_of_Complaint'] = pd.to_datetime(df_eps['Date_of_Complaint'], errors='coerce').dt.date
+        if 'Date_of_Complaint'.lower() in df_eps.columns:
+            col = 'date_of_complaint'
+            df_eps[col] = pd.to_datetime(df_eps[col], errors='coerce')
 
-        logging.info("🔤 Column & values renaming completed")
-        st.experimental_yield()  # 👈 HEARTBEAT #4
+        heartbeat("Cleaning values...")
 
-        # ---------------------------------------------------------
-        # Step 5: Upload to PostgreSQL
-        # ---------------------------------------------------------
-        logging.info("💾 Step 5: Uploading data to database")
+        # -----------------------------------------------
+        # Step 5: OPTIMIZED SQL Upload (fast chunks)
+        # -----------------------------------------------
+        logging.info("Uploading to database...")
 
-        df_eps.to_sql('staging_grievance', engine, if_exists='replace', index=False)
-        df_crm.to_sql('crm_raw', engine, if_exists='replace', index=False)
+        df_eps.to_sql(
+            'staging_grievance',
+            con=engine,
+            if_exists='replace',
+            index=False,
+            chunksize=5000,      # 🚀 FAST
+            method="multi"       # 🚀 FASTBATCH
+        )
 
-        st.experimental_yield()  # 👈 HEARTBEAT #5
+        df_crm.to_sql(
+            'crm_raw',
+            con=engine,
+            if_exists='replace',
+            index=False,
+            chunksize=5000,
+            method="multi"
+        )
 
-        # ---------------------------------------------------------
-        # Completed
-        # ---------------------------------------------------------
-        elapsed = round(time.time() - start_time, 2)
-        logging.info(f"🏁 Normalization completed in {elapsed} seconds")
+        heartbeat("Upload to DB complete")
 
-        print(f"✅ Normalization completed successfully in {elapsed} seconds.")
+        elapsed = round(time.time() - t0, 2)
+        logging.info(f"🏁 Normalization finished in {elapsed} sec")
+        st.success(f"🚀 Normalization completed in {elapsed} seconds")
+
         return True
 
     except Exception as e:
-        logging.exception(f"❌ Error during normalization: {str(e)}")
-        print("❌ Error! Check normalization.log for details.")
+        logging.exception(f"❌ Error: {str(e)}")
+        st.error(str(e))
         return False
-
-
-if __name__ == "__main__":
-    run_normalization()
