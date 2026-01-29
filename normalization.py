@@ -85,6 +85,9 @@ def run_normalization():
                 .str.title()
                 )
 
+        if 'Date_of_Complaint' in df_eps.columns:
+            df_eps['Date_of_Complaint'] = pd.to_datetime(df_eps['Date_of_Complaint'], errors='coerce').dt.date
+
         logging.info("🔤 Column & values renaming completed")
 
         # ---------------------------------------------------------
