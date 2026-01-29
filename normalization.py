@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 import os
 import time
+import streamlit as st  # <-- Added
 from config_cloud import *
 
 # ---------------------------------------------------------
@@ -25,6 +26,9 @@ def run_normalization():
     start_time = time.time()
     logging.info("🚀 Normalization pipeline started")
 
+    # 👇 HEARTBEAT #1 — prevents 60-second timeout
+    st.experimental_yield()
+
     try:
         # ---------------------------------------------------------
         # Step 1: Get latest uploaded raw Excel file
@@ -39,15 +43,18 @@ def run_normalization():
 
         logging.info(f"📂 Step 1: Using Excel file: {excel_path}")
 
+        st.experimental_yield()  # 👈 HEARTBEAT #2
+
         # ---------------------------------------------------------
-        # Step 2: Read EPS RAW & CRM RAW sheets
+        # Step 2: Read sheets
         # ---------------------------------------------------------
         logging.info("📖 Step 2: Reading sheets ['EPS RAW', 'CRM RAW'] from Excel")
 
         df_eps = pd.read_excel(excel_path, sheet_name='EPS RAW')
         df_crm = pd.read_excel(excel_path, sheet_name='CRM RAW')
 
-        logging.info(f"✅ Sheets read successfully | EPS RAW rows: {len(df_eps)}, CRM RAW rows: {len(df_crm)}")
+        logging.info(f"✅ Sheets read | EPS RAW rows: {len(df_eps)}, CRM RAW rows: {len(df_crm)}")
+        st.experimental_yield()  # 👈 HEARTBEAT #3
 
         # ---------------------------------------------------------
         # Step 3: Normalize column names
@@ -63,7 +70,7 @@ def run_normalization():
         logging.info("✅ Column normalization completed")
 
         # ---------------------------------------------------------
-        # Step 4: Additional column renaming (if required)
+        # Step 4: Additional renaming
         # ---------------------------------------------------------
         df_eps = df_eps.rename(columns={
             'source': 'source_primary',
@@ -83,26 +90,29 @@ def run_normalization():
                 .str.replace(r'\s*C\s*&\s*RD\s*Block', '', regex=True)
                 .str.replace(r'\s+', ' ', regex=True)
                 .str.title()
-                )
+            )
 
         if 'Date_of_Complaint' in df_eps.columns:
             df_eps['Date_of_Complaint'] = pd.to_datetime(df_eps['Date_of_Complaint'], errors='coerce').dt.date
 
         logging.info("🔤 Column & values renaming completed")
+        st.experimental_yield()  # 👈 HEARTBEAT #4
 
         # ---------------------------------------------------------
-        # Step 5: Upload to PostgreSQL (overwrite tables)
+        # Step 5: Upload to PostgreSQL
         # ---------------------------------------------------------
-        logging.info("💾 Step 5: Uploading data to PostgreSQL database")
+        logging.info("💾 Step 5: Uploading data to database")
 
         df_eps.to_sql('staging_grievance', engine, if_exists='replace', index=False)
         df_crm.to_sql('crm_raw', engine, if_exists='replace', index=False)
+
+        st.experimental_yield()  # 👈 HEARTBEAT #5
 
         # ---------------------------------------------------------
         # Completed
         # ---------------------------------------------------------
         elapsed = round(time.time() - start_time, 2)
-        logging.info(f"🏁 Normalization completed successfully in {elapsed} seconds")
+        logging.info(f"🏁 Normalization completed in {elapsed} seconds")
 
         print(f"✅ Normalization completed successfully in {elapsed} seconds.")
         return True
