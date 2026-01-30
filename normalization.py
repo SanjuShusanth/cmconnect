@@ -17,66 +17,77 @@ logging.basicConfig(
 
 def run_normalization():
     t0 = time.time()
-    logging.info("🚀 Normalization started")
+    logging.info("🚀 Normalization started (optimized mode)")
 
     try:
-        # find excel file
         raw_files = [f for f in os.listdir(RAW_DATA_PATH) if f.endswith(".xlsx")]
         if not raw_files:
             raise FileNotFoundError("No Excel files found.")
 
         latest_file = max(raw_files, key=lambda f: os.path.getmtime(os.path.join(RAW_DATA_PATH, f)))
         excel_path = os.path.join(RAW_DATA_PATH, latest_file)
-        logging.info(f"Using: {excel_path}")
+        logging.info(f"Using file: {excel_path}")
 
-        # load excel
         df_eps = pd.read_excel(excel_path, sheet_name='EPS RAW', engine="openpyxl")
         df_crm = pd.read_excel(excel_path, sheet_name='CRM RAW', engine="openpyxl")
 
         df_eps.columns = df_eps.columns.astype(str)
         df_crm.columns = df_crm.columns.astype(str)
 
-        # column cleanup
-        def normalize(cols):
+        # Column normalization
+        def normalize_cols(cols):
             cols = cols.str.strip()
             cols = cols.str.replace(r"[^\w]+", "_", regex=True)
             return cols.str.lower()
 
-        df_eps.columns = normalize(df_eps.columns)
-        df_crm.columns = normalize(df_crm.columns)
+        df_eps.columns = normalize_cols(df_eps.columns)
+        df_crm.columns = normalize_cols(df_crm.columns)
 
-        # renames
-        df_eps.rename(columns={'source': 'source_primary', 'source1': 'source_secondary'}, inplace=True)
-        df_eps.rename(columns=lambda c: "officer_name" if c.strip()=="" else c, inplace=True)
+        # Value cleanup
+        rename_map = {
+            'source': 'source_primary',
+            'source1': 'source_secondary'
+        }
+        df_eps.rename(columns=rename_map, inplace=True)
 
-        # district
+        if '' in df_eps.columns:
+            df_eps.rename(columns={'': 'officer_name'}, inplace=True)
+
         if 'district' in df_eps.columns:
-            df_eps['district'] = df_eps['district'].replace({'ri-bhoi': 'ri bhoi', 'Ri-Bhoi': 'Ri Bhoi'})
+            df_eps['district'] = df_eps['district'].replace({'Ri-Bhoi': 'Ri Bhoi'})
 
-        # block
         if 'block' in df_eps.columns:
             df_eps['block'] = (
-                df_eps['block'].astype(str)
-                .str.replace(r"c\s*(&|and)?\s*rd\s*block", "", regex=True, flags=re.I)
+                df_eps['block']
+                .astype(str)
+                .str.replace(r"c\s*&\s*rd\s*block", "", regex=True, flags=re.I)
                 .str.replace(r"\s+", " ", regex=True)
                 .str.title()
             )
 
-        # date
-        date_cols = [c for c in df_eps.columns if "date" in c and "complaint" in c]
-        if date_cols:
-            col = date_cols[0]
-            df_eps[col] = pd.to_datetime(df_eps[col], errors="coerce")
-            df_eps.rename(columns={col: "date_of_complaint"}, inplace=True)
+        if 'date_of_complaint' in df_eps.columns:
+            df_eps['date_of_complaint'] = pd.to_datetime(df_eps['date_of_complaint'], errors='coerce')
 
-        # upload to database
-        df_eps.to_sql('staging_grievance', con=engine, if_exists='replace',
-                      index=False, chunksize=5000, method="multi")
+        # Upload to DB
+        df_eps.to_sql(
+            'staging_grievance',
+            con=engine,
+            if_exists='replace',
+            index=False,
+            chunksize=5000,
+            method="multi"
+        )
 
-        df_crm.to_sql('crm_raw', con=engine, if_exists='replace',
-                      index=False, chunksize=5000, method="multi")
+        df_crm.to_sql(
+            'crm_raw',
+            con=engine,
+            if_exists='replace',
+            index=False,
+            chunksize=5000,
+            method="multi"
+        )
 
-        logging.info(f"✔ Completed in {round(time.time() - t0, 2)} seconds")
+        logging.info(f"🏁 Normalization finished in {round(time.time() - t0, 2)} sec")
         return True
 
     except Exception as e:
