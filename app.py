@@ -14,11 +14,9 @@ from config_cloud import *
 # =======================================================
 st.set_page_config(page_title="CM Connect Report Automation", layout="centered")
 
-# Safe session initialization
 if "ready" not in st.session_state:
     st.session_state.ready = True
     st.rerun()
-
 
 # =======================================================
 # Background image function
@@ -26,7 +24,6 @@ if "ready" not in st.session_state:
 def set_bg_center_transparent(image_path):
     import base64
     if not os.path.exists(image_path):
-        st.warning("Background image not found.")
         return
 
     with open(image_path, "rb") as img:
@@ -56,29 +53,26 @@ def set_bg_center_transparent(image_path):
     """
     st.markdown(css, unsafe_allow_html=True)
 
-
 set_bg_center_transparent(PICTURE_PATH)
 
 st.title("📊 CM Connect Automated Reporting Webapp")
 st.markdown("---")
 
-
 # =======================================================
-# Utility: Get latest generated PDF
+# Utility: Get latest PDF
 # =======================================================
 def get_latest_pdf():
     try:
-        pdf_files = [f for f in os.listdir(REPORT_PATH) if f.endswith(".pdf")]
-        if not pdf_files:
+        pdfs = [f for f in os.listdir(REPORT_PATH) if f.endswith(".pdf")]
+        if not pdfs:
             return None
-        latest = max(pdf_files, key=lambda f: os.path.getmtime(os.path.join(REPORT_PATH, f)))
+        latest = max(pdfs, key=lambda f: os.path.getmtime(os.path.join(REPORT_PATH, f)))
         return os.path.join(REPORT_PATH, latest)
-    except Exception:
+    except:
         return None
 
-
 # =======================================================
-# Sidebar Menu
+# Sidebar
 # =======================================================
 st.sidebar.title("🔧 Actions")
 action = st.sidebar.radio(
@@ -94,185 +88,148 @@ action = st.sidebar.radio(
 
 
 # =======================================================
-# Background Thread Function
+# SAFE THREAD VARIABLES (no Streamlit here)
 # =======================================================
-def background_normalize():
+if "thread_status" not in st.session_state:
+    st.session_state.thread_status = {
+        "running": False,
+        "done": False,
+        "error": None,
+        "progress": 0,
+        "status": "Waiting..."
+    }
+
+# =======================================================
+# Background thread (NO Streamlit calls!)
+# =======================================================
+def background_normalize_safe():
+    status = st.session_state.thread_status
+
     try:
-        st.session_state.norm_status = "Reading Excel file..."
-        st.session_state.norm_progress = 10
+        status["progress"] = 10
+        status["status"] = "Reading Excel file..."
 
         success = run_normalization()
 
         if success:
-            st.session_state.norm_progress = 100
-            st.session_state.norm_status = "Completed successfully!"
+            status["progress"] = 100
+            status["status"] = "Completed successfully!"
         else:
-            st.session_state.norm_status = "Normalization failed."
-            st.session_state.norm_error = "Error during normalization."
+            status["error"] = "Normalization failed!"
+            status["status"] = "Failed"
 
-        st.session_state.norm_done = True
+        status["done"] = True
 
     except Exception as e:
-        st.session_state.norm_done = True
-        st.session_state.norm_error = str(e)
+        status["error"] = str(e)
+        status["done"] = True
 
 
 # =======================================================
-# Run Data Normalization
+#  NORMALIZATION UI
 # =======================================================
 if action == "🏁 Run Data Normalization":
 
     st.subheader("🧹 Upload Excel & Normalize Data")
 
-    # Initialize session-state defaults
-    defaults = {
-        "norm_started": False,
-        "norm_done": False,
-        "norm_error": None,
-        "norm_progress": 0,
-        "norm_status": "Waiting..."
-    }
-    for key, val in defaults.items():
-        st.session_state.setdefault(key, val)
+    uploaded = st.file_uploader("Upload EPS & CRM Excel File", type=["xlsx"])
 
-    uploaded_file = st.file_uploader("Upload Latest EPS & CRM Excel File", type=["xlsx"])
+    if uploaded:
+        st.info("📁 Upload received, saving...")
 
-    if uploaded_file:
-        st.info("📁 Upload received. Saving to RAW_DATA_PATH...")
-
-        # Clear old files
         for old in os.listdir(RAW_DATA_PATH):
             os.remove(os.path.join(RAW_DATA_PATH, old))
 
-        # Save new file
-        new_file_path = os.path.join(RAW_DATA_PATH, uploaded_file.name)
-        with open(new_file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+        new_path = os.path.join(RAW_DATA_PATH, uploaded.name)
+        with open(new_path, "wb") as f:
+            f.write(uploaded.getbuffer())
 
-        st.success(f"✅ File uploaded: {uploaded_file.name}")
+        st.success(f"Uploaded: {uploaded.name}")
 
         if st.button("Run Normalization"):
-            st.session_state.norm_started = True
-            st.session_state.norm_done = False
-            st.session_state.norm_error = None
-            st.session_state.norm_progress = 5
-            st.session_state.norm_status = "Starting..."
-            threading.Thread(target=background_normalize, daemon=True).start()
-            st.info("⚙️ Normalization started in background… Please wait ⏳")
+            st.session_state.thread_status = {
+                "running": True,
+                "done": False,
+                "error": None,
+                "progress": 5,
+                "status": "Starting..."
+            }
+            threading.Thread(target=background_normalize_safe, daemon=True).start()
+            st.info("⚙️ Running normalization in background…")
 
-    # SHOW PROGRESS
-    if st.session_state.norm_started and not st.session_state.norm_done:
-        st.warning("⏳ Normalization in progress…")
-        st.write(st.session_state.norm_status)
-        st.progress(st.session_state.norm_progress)
+    # Show progress
+    status = st.session_state.thread_status
 
-        # safe auto-refresh every 1 second
-        if "last_refresh" not in st.session_state:
-            st.session_state.last_refresh = time.time()
+    if status["running"] and not status["done"]:
+        st.warning("⏳ Running…")
+        st.write(status["status"])
+        st.progress(status["progress"])
 
-        if time.time() - st.session_state.last_refresh > 1:
-            st.session_state.last_refresh = time.time()
-            st.rerun()
+        time.sleep(1)
+        st.rerun()
 
-    # ON COMPLETE
-    if st.session_state.norm_done:
-
-        if "last_refresh" in st.session_state:
-            del st.session_state.last_refresh
-
-        if st.session_state.norm_error:
-            st.error(f"❌ {st.session_state.norm_error}")
+    # Completed
+    if status["done"]:
+        if status["error"]:
+            st.error("❌ " + status["error"])
         else:
-            st.success("🎉 Normalization completed successfully!")
+            st.success("🎉 Normalization completed!")
             st.balloons()
 
-        # Reset for next run (DO NOT reset norm_done)
-        st.session_state.norm_started = False
-        st.session_state.norm_progress = 0
-        st.session_state.norm_status = "Waiting..."
-        st.session_state.norm_error = None
+        status["running"] = False
 
 
 # =======================================================
-# Generate Nodal Officer Report
+#  REPORT GENERATION
 # =======================================================
 elif action == "📄 Generate Nodal Officer Report":
-    st.subheader("📘 Generate Nodal Officer Grievance Summary Report")
-
+    st.subheader("📘 Generate Nodal Officer Report")
     if st.button("Generate Report"):
         try:
             generate_pdf_from_sql()
-            st.success("✅ Report generated!")
+            st.success("Report generated!")
 
-            latest = get_latest_pdf()
-            if latest:
-                st.download_button(
-                    label="⬇️ Download Latest Report",
-                    data=open(latest, "rb").read(),
-                    file_name=os.path.basename(latest),
-                    mime="application/pdf",
-                )
+            pdf = get_latest_pdf()
+            if pdf:
+                st.download_button("⬇ Download", open(pdf, "rb").read(),
+                                   file_name=os.path.basename(pdf))
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(str(e))
             st.code(traceback.format_exc())
 
 
-# =======================================================
-# Generate Pending Summary Report
-# =======================================================
 elif action == "📄 Generate Pending Summary Report":
-    st.subheader("📗 Generate Officer Pending Summary Report")
-
+    st.subheader("📗 Pending Summary Report")
     if st.button("Generate Pending Report"):
         try:
             generate_pdf2_from_sql()
-            st.success("✅ Pending Summary Report generated!")
-
-            latest = get_latest_pdf()
-            if latest:
-                st.download_button(
-                    label="⬇️ Download Latest Report",
-                    data=open(latest, "rb").read(),
-                    file_name=os.path.basename(latest),
-                    mime="application/pdf",
-                )
+            st.success("Report generated!")
+            pdf = get_latest_pdf()
+            if pdf:
+                st.download_button("⬇ Download", open(pdf, "rb").read(),
+                                   file_name=os.path.basename(pdf))
         except Exception as e:
-            st.error(f"❌ Report generation failed: {e}")
+            st.error(str(e))
             st.code(traceback.format_exc())
 
 
-# =======================================================
-# View Latest Report
-# =======================================================
 elif action == "📂 View Latest Report":
-    st.subheader("🗂️ Latest Generated PDF")
-    latest = get_latest_pdf()
-
-    if latest:
-        st.success(f"📄 Found latest: `{os.path.basename(latest)}`")
-        st.download_button(
-            label="⬇️ Download Report",
-            data=open(latest, "rb").read(),
-            file_name=os.path.basename(latest),
-            mime="application/pdf",
-        )
+    pdf = get_latest_pdf()
+    if pdf:
+        st.success("Report found: " + os.path.basename(pdf))
+        st.download_button("⬇ Download", open(pdf, "rb").read(),
+                           file_name=os.path.basename(pdf))
     else:
-        st.warning("⚠️ No reports found yet.")
+        st.warning("No reports found.")
 
 
-# =======================================================
-# View Logs
-# =======================================================
 elif action == "📜 View Logs":
-    st.subheader("🧾 Application Logs")
-
-    log_files = [f for f in os.listdir(LOG_DIR) if f.endswith(".log")]
-
-    if not log_files:
-        st.warning("⚠️ No logs found.")
+    st.subheader("Logs")
+    logs = [f for f in os.listdir(LOG_DIR) if f.endswith(".log")]
+    if logs:
+        choose = st.selectbox("Select log:", logs)
+        if st.button("View"):
+            content = open(os.path.join(LOG_DIR, choose), "r").read()
+            st.text_area("Log", content, height=400)
     else:
-        selected = st.selectbox("Select a log file", log_files)
-        if st.button("View Log Content"):
-            with open(os.path.join(LOG_DIR, selected), "r", encoding="utf-8") as f:
-                content = f.read()
-            st.text_area("📋 Log Content", content, height=400)
+        st.warning("No logs available.")
